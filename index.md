@@ -8,8 +8,10 @@ This lesson created for the [Molecular Sciences Software Institute]({{ site.mols
 
 This material was used at the MolSSI workshop at the [MERCURY Confernece on Computational Chemistry](https://mercuryconsortium.org/) in 2019.
 
+Many instructors like to provide their students with pre-filled jupyter notebooks that contain some of the larger code blocks and examples.  You can find complete jupyter notebooks for each lesson in the `code` folder of the [GitHub repository](https://github.com/MolSSI-Education/qm-tools) from which you could develop notebooks for students. 
+
 **This lesson is under development, please report issues to the [GitHub
-repository](https://github.com/MolSSI-Education/undergrad_workshop)**
+repository](https://github.com/MolSSI-Education/qm-tools)**
 
 > ## Prerequisites
 >
