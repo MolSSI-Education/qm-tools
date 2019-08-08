@@ -149,13 +149,22 @@ Now that we have the molecule setup, we need to decide which dihedrals needs to 
 
 We want to rotate the nitro group around the plane of benzene.  The first three numbers will be the atoms that form the nitro group: one of the oxygens, the nitrogen, and the carbon the nitrogen is attached to.  The second three numbers will define the plane of the benzene ring: the nitrogen, the carbon the nitrogen is attached to, and an adjacent carbon in the aromatic ring.  There are two oxygens in the nitro group, so we will define two dihedral angles, one based on each, `dihedral1` and `dihedral2`.
 
+> ## Exercise
+> Determine the atom numbers for the atoms involved in `dihedral1` and `dihedral2`.  Both dihedrals should be defined such that their initial value is zero.
+>
+>> ## Solution
+>> ~~~
+>> # set the dihedrals to be rotated around
+>> dihedral1 = "2 1 7 8 "
+>> dihedral2 = "6 1 7 9 "
+>> ~~~
+>> {: .language-python}
+> {: .solution}
+{: .challenge}
+
 One of the challenges of computations like this is to make sure that the number of calculations is reasonable to give a smooth potential energy plot.  For different molecules, you may have to use a different step size for your angle rotation.  But if you choose too big of a step size, the optimization may fail.  If you take too small of a step, then it will take a long time to generate the calculations.  In this example, we will initially rotate our dihedral angle by increments of 10 degrees.  We will have these values into a numpy array called `phi`.
 
 ```
-# set the dihedrals to be rotated around
-dihedral1 = "2 1 7 8 "
-dihedral2 = "6 1 7 9 "
-
 # set the values of the dihedral for the calculations
 # note that each value will correspond to a geometry optimization for each of the frozen dihedral values
 import numpy as np
