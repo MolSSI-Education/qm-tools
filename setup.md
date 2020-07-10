@@ -12,7 +12,7 @@ title: Setup
 
 You will need a text editor for this workshop. If you do not have a preferred text editor for writing code, we recommend [Atom](https://atom.io). Download Atom at the link and install on your computer.
 
-## Installing OpenMM (computational chemistry software)
+## Installing Psi4 (computational chemistry software)
 We recommend using a conda environment for software installations. If you know how to use a conda environment, you should create one for this tutorial and install OpenMM there. If you do not know how to create an environment, do not create one and just follow the instructions below.
 
 After you have Anaconda installed, you can install the software using `conda`. Open a Terminal if you are on Mac or Linux. If you are on Windows, you should open a program called Anaconda Prompt. Type the following command into the terminal/anaconda prompt and press Enter. When prompted, answer 'yes' and wait for the install to finish:
