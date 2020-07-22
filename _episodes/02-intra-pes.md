@@ -80,8 +80,8 @@ Our goal in this exercise is to understand the way the energy of the molecule ch
 First we import the python modules we need to use for our calculations.
 
 ```
-# import the python modules that we will use
 import psi4
+import numpy as np
 %matplotlib inline
 import matplotlib.pyplot as plt
 ```
@@ -106,7 +106,7 @@ molecule_name = "nitrobenzenepes"
 # enter the starting coordinates of the atoms in your molecule
 # note that the "0 1" is the charge and multiplicity of the molecule;
 # the "symmetry c1" term forces Psi4 to not use molecular symmetry
-molecule = psi4.geometry("""
+nitrobenzene = psi4.geometry("""
 symmetry c1
 0 1
          C           -0.095064772343     0.146295623041     0.059537205186
@@ -126,13 +126,13 @@ symmetry c1
 """)
 
 # calculate the initial energy of the molecule using the Hartree-Fock method and the cc-pVDZ basis set to a file
-psi4.set_output_file(molecule_name + '_energy_initial.dat', False)
-E = psi4.energy('scf/cc-pVDZ')
+psi4.set_output_file(F'{molecule_name}_energy_initial.dat', False)
+E = psi4.energy('scf/cc-pVDZ',molecule=nitrobenzene)
 
 # print atomic coordinates and interatomic distances to a file
-psi4.set_output_file(molecule_name + '_geometry_initial.dat', False)
-molecule.print_out_in_angstrom()
-molecule.print_distances()
+psi4.set_output_file(F'{molecule_name}_geometry_initial.dat', False)
+nitrobenzene.print_out_in_angstrom()
+nitrobenzene.print_distances()
 
 #print the energy out to the notebook
 print('The energy is: ', E)
@@ -179,23 +179,29 @@ print(phi)
 {: .output}
 
 ### Calculating the PES
-Now that we have the basics set up, we need to actually run the constrained optimizations for each of the dihedral values. First, we will run each of the optimizations to a separate file and then do a search in each file (like in the first exercise) to get the energy. Then we will plot the energies for each of the dihedral angles involved. One advantage to having the separate files is that you can more easily figure out what is going wrong if you get an error.
+Now that we have the basics set up, we need to actually run the constrained optimizations for each of the dihedral values. First, we will set up an output file and run each of the optimizations.  The energy of the final optimized structure will be saved in the list `energy_values`. Then we will plot the energies for each of the dihedral angles involved.
 
-This next step is to do the constrained optimizations with different file names for each dihedral value. This will take a bit of time to do the optimization, so be patient! To help speed up the process, we are going to switch the basis set to the 3-21G basis (a smaller basis than the cc-pVDZ one we have used up to this point). You will know all of the computations are complete when you see "All optimizations complete!".
+To help speed up the process, we are going to switch the basis set to the 3-21G basis (a smaller basis than the cc-pVDZ one we have used up to this point). You will know all of the computations are complete when you see "All optimizations complete!".
 
 ```
+psi4.set_output_file('nitrobenzene_torsionscan.dat', False)
+
+#Set up empty list to store the energy values
+energy_values = []
+
 # loop over all of the dihedral values
 for P in phi:
+    print(F'The value of the frozen dihedrals is {P}')
     #set up a string needed by Psi4 to freeze the dihedral
-    frozen_dihedral1 = dihedral1 + " " + str(P)
-    frozen_dihedral2 = dihedral2 + " " + str(P)
-    print('\nThe value of the frozen_dihedrals is: ', P)
-    frozen_dihedral_total = frozen_dihedral1 + " " + frozen_dihedral2
-    psi4.set_module_options('optking', {'fixed_dihedral': frozen_dihedral_total})  #set the fixed dihedral
+    frozen_dihedral = F'{dihedral1} {P} {dihedral2} {P}'
+    #set the fixed dihedral
+    psi4.set_module_options('optking', {'fixed_dihedral': frozen_dihedral})  
     # we're going to loosen up the convergence criteria to speed this process up
+    # we are going to give it more cycles to optimize
     psi4.set_module_options('optking', {'g_convergence': 'gau_loose'})
-    psi4.set_output_file(molecule_name + '_' + str(P) + '_geometry_optimization.dat', False)
-    psi4.optimize('scf/3-21G', molecule=molecule)
+    psi4.set_module_options('optking', {'geom_maxiter': 100})
+    E = psi4.optimize('scf/3-21G', molecule=nitrobenzene)
+    energy_values.append(E)
 
 print('All optimizations complete!')
 ```
@@ -262,41 +268,16 @@ All optimizations complete!
 ```
 {: .output}
 
-### Reading energies from the geometry optimization files
-Below is a function that will pull out the molecular energies from the geometry optimization output files. This way you can look at how the energy changes as the angle is rotated. In the 'geometry_optimization' file you can find this information where it says 'Final energy : '.
-```
-# function to find the energy in the optimization files
-def plot_pes_energy():
-    energy_values = []
-    for P in phi:
-        with open(molecule_name + '_' + str(P) + '_geometry_optimization.dat') as f:
-            final_energy = [ float(line.split()[3]) for line in f if line.strip().startswith('Final energy') ]
-            energy_values.append(final_energy[0])
-    return energy_values
-```
-{: .language-python}
-
 ### Plotting how energy changes during the potential energy scan
 
-Using the function above, we will find the molecule's energy at each step of the potential energy surface and store them into the `energy_values` variable. We also need to find what the highest and lowest values of the energy are during optimization so that we know what range to use for plotting on the y-axis. Then, we will plot how the energy changes at each value of phi.
+Next, we will plot how the energy changes at each value of phi.
 
 ```
-# find the energies from this optimization file
-energy_values = plot_pes_energy()
-
-# determine an appropriate range for plotting
-energy_range = max(energy_values) - min(energy_values)
-
-# plot the energies at each iteration
-plt.scatter(phi, energy_values, color='MediumVioletRed')
-plt.xlim(min(phi)-3, max(phi)+3)
-plt.xticks(np.linspace(start=0, stop=180, num=7))
-plt.ylim(top = max(energy_values) + energy_range*0.15,
-         bottom = min(energy_values) - energy_range*0.15)
-plt.yticks(np.linspace(start=min(energy_values), stop=max(energy_values), num=5))
-plt.xlabel("dihedral angle in degrees")
-plt.ylabel("energy (Hartrees)")
-plt.title("Nitrobenzene C-N torsion energy")
+plt.figure()
+plt.plot(phi, energy_values, 'ro')
+plt.xlabel('dihedral angle in degrees')
+plt.ylabel('energy (Hartrees)')
+plt.title('Nitrobenzene C-N torsional angle')
 plt.show()
 ```
 {: .language-python}
@@ -335,33 +316,3 @@ plt.show()
 >>
 > {: .solution}
 {: .challenge}
-
-> ## An alternative to the file parsing technique
-> Instead of saving each optimization output file, the PsiAPI allows you to return the output of psi4 function calls directly to numpy objects.  If you wanted to utilize this functionality, in the optimization code block, the output of `psi4.optimize` is now saved to a variable called `E`.  This automatically saves the energy of each step in this variable, making file parsing unnecessary.  
->
-> ~~~
-> psi4.set_output_file(molecule_name + '_torsionscan_v2.dat', False)
->
-> # create empty lists to store phi and energy values
-> phi = []
-> energy_values = []
->
-> # loop over all of the dihedral values
-> for P in range(0, 181, 10):
->     #set up a string needed by Psi4 to freeze the dihedral
->     frozen_dihedral1 = dihedral1 + " " + str(P)
->     frozen_dihedral2 = dihedral2 + " " + str(P)
->     print('\nThe value of the frozen_dihedrals is: ', P)
->     frozen_dihedral_total = frozen_dihedral1 + " " + frozen_dihedral2
->     psi4.set_module_options('optking', {'fixed_dihedral': frozen_dihedral_total})  #set the fixed dihedral
->     psi4.set_module_options('optking', {'g_convergence': 'gau_loose'})
->     E = psi4.optimize('scf/3-21G', molecule=molecule)
->     phi.append(P)
->     energy_values.append(E)
->
-> print('All optimizations complete!')
-> ~~~
-> {: .language-python}
->
-> Now the `plot_pes_energy` function is not necessary.  The `energy_values` list was created inside the loop as the optimizations were computed and you could now move directly to plotting these values.
-{: .callout}

@@ -18,12 +18,6 @@ In this exercise we will scan the intermolecular potential energy surfaces of a 
 ```
 import psi4
 import numpy as np
-import sys,os
-from math import sqrt,cos,sin,radians
-sys.path.append('os.getcwd()')
-from copy import deepcopy,copy
-
-import pdb
 %matplotlib inline
 import matplotlib.pyplot as plt
 ```
@@ -53,13 +47,9 @@ H7 5 1.0 2 120.0 4 -90.0
 {: .language-python}
 
 ## Scan 1D PES
-Now we will perform a one-dimernsional (1D) scan of the water dimer as the intermolecular distance between the two molecules is increased.  The scan will be performed along the vector connecting the two oxygen atoms of the molecule.  
+Now we will perform a one-dimensional (1D) scan of the water dimer as the intermolecular distance between the two molecules is increased.  The scan will be performed along the vector connecting the two oxygen atoms of the molecule.  
 
-Since the monomer geometries are not changing and since we don't care about the absolute energy, we will be computing the interaction energy. For a dimer the interaction energy ($E_{\rm int}$) is given by the following equation,
-
-$$E_{\rm int} = E_{ij} - E_{i} - E_{j}$$.
-
-That is, the absolute energy of the two monomers, $E_i$ and $E_j$, are subtracted from the absolute energy of the dimer $E_{ij}$. This is done automatically by using the command `bsse_type='cp'`.
+Since the monomer geometries are not changing and since we don't care about the absolute energy, we will be computing the interaction energy. For a dimer the interaction energy is calculated by subtracting the energy of the monomers from the energy of the dimer. This is done automatically by using the command `bsse_type='cp'`.
 
 ```
 rvals = [1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 3.0, 3.5]
@@ -69,15 +59,15 @@ for r in rvals:
     mol = psi4.geometry(water_dimer.replace('**R**', str(r)))
 
     # Compute the interaction energy
-    en = psi4.energy('scf/aug-cc-pVDZ', molecule=mol, bsse_type='cp')
+    E = psi4.energy('scf/aug-cc-pVDZ', molecule=mol, bsse_type='cp')
 
     # Place in a reasonable unit, kcal/mole in this case
-    en = en*627.509
+    E = E*627.509
 
     # Append the value to our list
-    energies.append(en)
+    energies.append(E)
 
-print("Finished computing the potential energy surface!")  
+print("Finished computing the potential energy surface!")
 ```
 {: .language-python}
 ~~~
@@ -85,8 +75,8 @@ Finished computing the potential energy surface!
 ~~~
 {: .output}          
 
-> # Exercise
-> Plot the energies vs. the center of mass distance.  
+> ## Exercise
+> Plot the energies vs. separation of the two oxygen atoms (R).  
 >
 >> ## Solution
 >> ~~~
@@ -123,19 +113,62 @@ H7 5 1.0 2 120.0 4 **B**
 ~~~
 {: .language-python}
 
-Since there are now two degrees of freedom, the number of energy evaluations will be increased. To mitigate this, we will scan less frequently along the distance vector from 1.8 angstroms to 2.5 angstroms in 1.0 angstrom increments. At each distance we will also scan along the angle that the second molecule makes with the distance vector, from -180 degrees to 180 degrees in 15 degree increments.  As we calculate the energies at each angle for a particular value of R, we will save the values in a list called `z`.  Once we have finished all the angles for a particular R, we will append the list `z` to a list called `nrg_2D`.  This means `nrg_2D` will be a list of lists.  (We are doing this so we can later recast this to a numpy array.  But that will come later.)  For now, know that an element of `nrg_2D` is a list of all the energies at all the angles for a particular value of R.
-~~~
-Rvals = [1.8+v*0.1 for v in range(8)]
-Avals = [-180+v*15 for v in range(24+1)]
+First, let's choose one value of R and rotate through many dihedral angles.  Since we want our water to remain planar, the two dihedral angles aren't actually independent; they must always be 180 degrees apart.  Therefore, we will choose a range of values for A, and then calculate B based on the value of A.  We will create a list called `energies_R` to store our energy values for this particular value of R.
 
-nrg_2D = []
+```
+R = 1.8
+Avals = np.linspace(start=-180,stop=180, num=25)
+
+energies_R = []
+
+for A in Avals:
+
+    print(F'Computing dimer at {R:.1f} angstroms and {A:.2f} degrees')
+
+    # Build a new molecule at each separation
+    B = A-180
+    molR = water_dimer2.replace('**R**', str(R))
+    molA = molR.replace('**A**', str(A))
+    molB = molA.replace('**B**', str(B))
+    mol = psi4.geometry(molB)
+
+    # calculate energy
+    psi4.set_output_file(F'{molecule_name}_{R:.1f}_{A:.2f}_energy.dat', False)
+    E = psi4.energy('scf/aug-cc-pVDZ', molecule=mol, bsse_type='cp')       
+    E = E*627.509
+    energies_R.append(E)
+```
+{: .language-python}
+
+> ## Exercise
+> Plot the energy as a function of the dihedral angle A.
+>
+>> ## Solution
+>> ~~~
+>> plt.figure()
+>> plt.plot(Avals, energies_R, 'r-o')
+>> plt.xlabel('Dihedral angle (degrees)')
+>> plt.ylabel('Interaction Energy (kcal/mole)')
+>> ~~~
+>> {: .language-python}
+>> <img src="../fig/r18.png"/>
+> {: .solution}
+{: .challenge}
+
+Now let's expand to two degrees of freedom.  We will use the same angles as before, but now instead of just doing all the calculations at a single value of R, we will do the calculation at multiple values of R.  To do this, we will use a *nested for loop*.  This means we will have an outer `for` loop that counts over the different values of R and then an inner `for` loop that counts over the different values of A for a particular value of R.  As we calculate the energies at each angle for a particular value of R, we will save the values in a list called `energies_R` as we did before.  Once we have finished all the angles for a particular R, we will append the list `energies_R` to a list called `energy_2D`.  This means `energy_2D` will be a list of lists.  We will need to create `energy_2D` as an empty list outside of our `for` loop.
+
+~~~
+Rvals = np.linspace(start=1.8,stop=2.5,num=8)
+Avals = np.linspace(start=-180,stop=180, num=25)
+
+energy_2D = []
 
 for R in Rvals:
+    energies_R = []
 
-    z = []
     for A in Avals:
 
-        print("computing dimer at %05.2f angstroms and %6.1f degrees"%(R,A))
+        print(F'Computing dimer at {R:.1f} angstroms and {A:.2f} degrees')
 
         # Build a new molecule at each separation
         B = A-180
@@ -145,13 +178,14 @@ for R in Rvals:
         mol = psi4.geometry(molB)
 
         # calculate energy
-        psi4.core.set_output_file(molecule_name + '_%05.2f_%06.1f_energy.dat'%(R,A), False)
-        en = psi4.energy('scf/aug-cc-pVDZ', molecule=mol, bsse_type='cp')       
-        en = en*627.509
-        z.append(en)
+        psi4.set_output_file(F'{molecule_name}_{R:.1f}_{A:.2f}_energy.dat', False)
+        E = psi4.energy('scf/aug-cc-pVDZ', molecule=mol, bsse_type='cp')       
+        E = E*627.509
+        energies_R.append(E)
 
-    nrg_2D.append(z)
+    energy_2D.append(energies_R)
 
+print(F'All calculations are complete!')
 ~~~
 {: .language-python}
 ~~~
@@ -162,35 +196,23 @@ computing dimer at 01.80 angstroms and -135.0 degrees
 computing dimer at 01.80 angstroms and -120.0 degrees
 etc.
 etc.
+All calculations are complete!
 ~~~
 {: .output}
 
 > ## Exercise
-> Plot the interaction energies as a function of angle for two different values of R: 2.0 and 2.3.  
+> Plot the interaction energies as a function of angle for two different values of R, 2.0 and 2.3, on the same graph.
 >
 >> ## Solution
 >> In the `Rvals` list, 2.0 angstrom is index 2, `Rvals[2]`.  2.3 angstroms is index 5, `Rvals[5]`.  
 >>
 >> ~~~
->> # plot energies vs angles at 2.0 angstroms
->> plt.plot(Avals,nrg_2D[2],".-");
->> plt.xlabel("angle (degrees)")
->> plt.ylabel("energy (kcal/mol)")
->> plt.ylim(-5, -2)
->> plt.title(molecule_name + " interaction energy at %4.2f Angstroms"%(Rvals[2]))
->> plt.show()
->> ~~~
->> {: .language-python}
->>
->> Plot goes here.
->>
->> ~~~
->> # plot energies vs angles at 2.3
->> plt.plot(Avals,nrg_2D[5],".-");
->> plt.xlabel("angle (degrees)")
->> plt.ylabel("energy (kcal/mol)")
->> plt.ylim(-5, -2)
->> plt.title(molecule_name + " interaction energy at %4.2f Angstroms"%(Rvals[5]))
+>> plt.figure()
+>> plt.plot(Avals, energy_2D[2], 'r-o', label='2.0 Angstroms')
+>> plt.plot(Avals, energy_2D[5], 'b-o', label='2.3 Angstroms')
+>> plt.xlabel('Angle (degrees)')
+>> plt.ylabel('Energy (kcal/mole)')
+>> plt.legend()
 >> plt.show()
 >> ~~~
 >> {: .language-python}

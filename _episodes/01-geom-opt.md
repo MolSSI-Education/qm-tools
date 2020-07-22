@@ -37,6 +37,55 @@ import matplotlib.pyplot as plt
 ```
 {: .language-python}
 
+Next, we will important two custom functions that have been written for this lesson.  The first function `plot_R` measures the bond distance between two specified atoms at each step of our geometry optimization.  The next function, `plot_energy` extracts the energy at each optimization step.  We will discuss using these functions, and how you can learn about new functions you are provided to use later in this lesson.
+
+```
+# function to find the bond distance for two specific atoms in the optimization file
+def plot_R(filename, a, b):
+    """
+    Function to measure the distance between two atoms in a psi4 geometry optimization output file
+
+    Usage: plot_R(filename, a, b)
+
+    Inputs:
+    filename: name of psi4 output file from geometry optimization calclaultion
+    a and b: atom numbers for two atoms you want to measure the distance between
+
+    Output: list of bond distance at for each optimization step
+    """    
+    with open(filename) as f:
+        pair_notation = 'R(' + str(a) + ',' + str(b) + ')'
+        rows_with_R_pairs = [line.split() for line in f if line.find(pair_notation) > 1 and
+                             line.strip().split()[1].startswith(pair_notation)]
+        bond_distances = []
+        bond_distances.append(float(rows_with_R_pairs[0][3]))
+        for item in rows_with_R_pairs:
+            bond_distances.append(float(item[6]))
+        return bond_distances
+```
+{: .language-python}
+
+```
+# function to find the energy in the optimization file
+def plot_energy(filename):
+    """
+    Function to find the energy in a psi4 optimization file.
+
+    Usage: plot_energy(filename)
+
+    Inputs: name of psi4 output file from geometry optimization calclaultion
+    filename: name
+
+    Output: list of energy values from each optimization step
+    """
+
+    with open(filename) as f:
+        #energy_string = 'Current energy'
+        energy_values = [ float(line.split()[3]) for line in f if line.strip().startswith('Current energy') ]
+        return energy_values
+```
+{: .language-python}
+
 ### Setting up the molecule
 First we will set up our molecule as an object in Psi4 using the function `psi4.geometry()`.  Once we have the molecule built, we can use Psi4 to calculate different attributes of the molecule using the basis set that we specify. In this case we will use the Hartree-Fock method (SCF) and the cc-pVDZ basis set. We will calculate the energy of the molecule and print it to a file called 'energy_initial', since this is the initial structure of our molecule. It turns out that this command gives us more than just the molecule's energy.
 
@@ -70,13 +119,15 @@ benzene = psi4.geometry("""
    H       -5.60487        2.68217       -0.70124
 """)
 
-# calculate the initial energy of the molecule using the Hartree-Fock method
-# and the cc-pVDZ basis set; print this output to a file
-psi4.set_output_file(molecule_name + '_energy_initial.dat', False)
+# Set the name of the output file for the initial energy calculation
+# Calculate the initial energy of the molecule using the Hartree-Fock method
+# and the cc-pVDZ basis set and print the output to a file
+psi4.set_output_file(F'{molecule_name}_energy_initial.dat', False)
 psi4.energy('scf/cc-pVDZ')
 
-# print atomic coordinates and interatomic distances to a file
-psi4.set_output_file(molecule_name + '_geometry_initial.dat', False)
+# Set the name of the output file to write the geometry information
+# Print atomic coordinates and interatomic distances to this file
+psi4.set_output_file(F'{molecule_name}_geometry_initial.dat', False)
 benzene.print_out_in_angstrom()
 benzene.print_distances()
 ```
@@ -91,11 +142,11 @@ After the optimization is complete, we print the atomic coordinates and interato
 
 ```
 # optimize the molecular geometry
-psi4.set_output_file(molecule_name + '_geometry_optimization.dat', False)
+psi4.set_output_file(F'{molecule_name}_geometry_optimization.dat', False)
 psi4.optimize('scf/cc-pVDZ', molecule=benzene)
 
 # print the optimized atomic coordinates and interatomic distances
-psi4.set_output_file(molecule_name + '_geometry_final.dat', False)
+psi4.set_output_file(F'{molecule_name}_geometry_final.dat', False)
 benzene.print_out_in_angstrom()
 benzene.print_distances()
 ```
@@ -106,83 +157,65 @@ Optimizer: Optimization complete!
 {: .language-output}
 
 ### Reading bond distances from the geometry optimization file
-Below is a function that will pull out the bond distances for any two atoms in the molecule from the geometry optimization output file. This way you can look at how the bond distances change during the optimization process.  We won't explain how the function works here, but you can see the information in the 'geometry_optimization' file in the lines that begin with R(a,b), where a and b are the numbers for the two atoms that form a bond.
+Now we will use the `plot_R` function we imported above to
+pull out the bond distances for any two atoms in the molecule from the geometry optimization output file. This way you can look at how the bond distances change during the optimization process.  We won't explain how the function works here, but you can see the information in the 'geometry_optimization' file in the lines that begin with R(a,b), where a and b are the numbers for the two atoms that form a bond.   Remember, we can use the python `help()` function to learn more about how any new function works.
+
 ```
-# function to find the bond distance for two specific atoms in the optimization file
-def plot_R(a, b):
-    with open(molecule_name + '_geometry_optimization.dat') as f:
-        pair_notation = 'R(' + str(a) + ',' + str(b) + ')'
-        rows_with_R_pairs = [line.split() for line in f if line.find(pair_notation) > 1 and
-                             line.strip().split()[1].startswith(pair_notation)]
-        bond_distances = []
-        bond_distances.append(float(rows_with_R_pairs[0][3]))
-        for item in rows_with_R_pairs:
-            bond_distances.append(float(item[6]))
-        return bond_distances
+help(plot_R)
 ```
 {: .language-python}
 
-### Plotting how bond distances change during optimization
-Using the function above, we will find the bond distances between two atoms at each step of the optimization and store them in the list bond_distances. We also need to find what the largest and smallest values of the bond distance are during optimization so that we know what range to use for plotting on the y-axis.
+```
+Help on function plot_R in module __main__:
 
-Then, we will plot how that distance changes at each step of the optimization process. You should see it change from the initial value and then level out to the optimal bond distance based on the Hartree-Fock method and the cc-pVDZ basis set.
+plot_R(filename, a, b)
+    Function to measure the distance between two atoms in a psi4 geometry optimization output file
+
+    Useage: plot_R(filename, a, b)
+
+    Inputs: filename: name of psi4 output file from geometry optimization calclaultion
+    a and b: atom numbers for two atoms you want to measure the distance between
+
+    Output: list of bond distance at for each optimization step
+```
+{: .output}
+
+### Plotting how bond distances change during optimization
+Using the function `plot_R`, we will find the bond distances between two atoms at each step of the optimization and store them in the list bond_distances. Then, we will plot how that distance changes at each step of the optimization process. You should see it change from the initial value and then level out to the optimal bond distance based on the Hartree-Fock method and the cc-pVDZ basis set.
 
 ```
 # find the bond distance for atoms C1 and C2
-bond_distances = plot_R(1, 2)
-# determine an appropriate range for plotting
-dist_range = max(bond_distances) - min(bond_distances) # check out np.ptp(), too!
+bond_distances = plot_R('benzene_geometry_optimization.dat',1,2)
 
 # plot the bond distances at each iteration of geometry optimization
-plt.scatter(np.arange(len(bond_distances)), bond_distances)
-plt.ylim(top = max(bond_distances) + dist_range*0.15,
-         bottom = min(bond_distances) - dist_range*0.15)
-plt.xlabel("iteration")
-plt.ylabel("distance (Angstroms)")
-plt.title(molecule_name + " C-C bond distance")
+plt.plot(bond_distances,'o')
+plt.xlabel('iteration')
+plt.ylabel('distance (angstroms)')
+plt.title(molecule_name + ' C-C bond distance')
 plt.show()
 ```
 {: .language-python}
 
 <img src="../fig/cc_bond_benzene.png" title="Benzene C-C Bond Distance" style="display: block; margin: auto;" />
 
-### Reading energies from the geometry optimization file
-Below is a function that will extract the molecular energies from the geometry optimization output file. This way you can look at how the energy changes during the optimization process. In the 'geometry_optimization' file you can find this information on lines that begin with **Current energy**.
-```
-# function to find the energy in the optimization file
-def plot_energy():
-    with open(molecule_name + '_geometry_optimization.dat') as f:
-        #energy_string = 'Current energy'
-        energy_values = [ float(line.split()[3]) for line in f if line.strip().startswith('Current energy') ]
-        return energy_values
-```
-{: .language-python}
-
 ### Plotting how energy changes during optimization
-Using the function above, we will find the molecule's energy at each step of the optimization and store them in the list `energy_values`.
-
-Then, we will plot how the energy changes at each step of the optimization process. What trend do you expect to see? Why?
-
+Now we will use the `plot_energy` function from above to extract the molecular energies from the geometry optimization output file. This way you can look at how the energy changes during the optimization process. In the 'geometry_optimization' file you can find this information on lines that begin with **Current energy**.  Then, we will plot how the energy changes at each step of the optimization process. What trend do you expect to see? Why?  In this example, we will also save our plot as a PNG file called `benzene_energy.png`.
 ```
 # find the energies from this optimization file
-energy_values = plot_energy()
-# determine an appropriate range for plotting
-energy_range = max(energy_values) - min(energy_values)
+energy_values = plot_energy('benzene_geometry_optimization.dat')
 
 # plot the energies at each iteration
 plt.figure()
-plt.scatter(np.arange(len(energy_values)), energy_values)
-plt.ylim(top = max(energy_values) + energy_range*0.15,
-         bottom = min(energy_values) - energy_range*0.15)
+plt.plot(energy_values,'o')
 plt.xlabel("iteration")
 plt.ylabel("energy (Hartrees)")
-plt.title(molecule_name + " energy")
-#plt.show()
+plt.title(F'{molecule_name} energy')
+plt.show()
 plt.savefig(F'benzene_energy.png')
 ```
 {: .language-python}
 
-<img src="../fig/benzene_energy.png" title="Benzene C-C Bond Distance" style="display: block; margin: auto;" />
+<img src="../fig/benzene_energy.png" title="Benzene Energy" style="display: block; margin: auto;" />
 
 > ## Exercise: Nitrobenzene
 > Using the commands you learned above, perform a geometry optimization for nitrobenzene.  You may wish to make a copy of the notebook you have made so far and change the relevant portions.  You will need to generate coordinates for nitrobenzene using Avogadro or another molecular drawing program.  Plot the distance between the C-N bond as a function of iteration.  Plot the energy of the molecule as a function of iteration.
