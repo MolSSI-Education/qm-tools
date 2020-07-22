@@ -122,12 +122,12 @@ benzene = psi4.geometry("""
 # Set the name of the output file for the initial energy calculation
 # Calculate the initial energy of the molecule using the Hartree-Fock method
 # and the cc-pVDZ basis set and print the output to a file
-psi4.set_output_file(molecule_name + '_energy_initial.dat', False)
+psi4.set_output_file(F'{molecule_name}_energy_initial.dat', False)
 psi4.energy('scf/cc-pVDZ')
 
 # Set the name of the output file to write the geometry information
 # Print atomic coordinates and interatomic distances to this file
-psi4.set_output_file(molecule_name + '_geometry_initial.dat', False)
+psi4.set_output_file(F'{molecule_name}_geometry_initial.dat', False)
 benzene.print_out_in_angstrom()
 benzene.print_distances()
 ```
@@ -142,11 +142,11 @@ After the optimization is complete, we print the atomic coordinates and interato
 
 ```
 # optimize the molecular geometry
-psi4.set_output_file(molecule_name + '_geometry_optimization.dat', False)
+psi4.set_output_file(F'{molecule_name}_geometry_optimization.dat', False)
 psi4.optimize('scf/cc-pVDZ', molecule=benzene)
 
 # print the optimized atomic coordinates and interatomic distances
-psi4.set_output_file(molecule_name + '_geometry_final.dat', False)
+psi4.set_output_file(F'{molecule_name}_geometry_final.dat', False)
 benzene.print_out_in_angstrom()
 benzene.print_distances()
 ```
@@ -209,7 +209,7 @@ plt.figure()
 plt.plot(energy_values,'o')
 plt.xlabel("iteration")
 plt.ylabel("energy (Hartrees)")
-plt.title(molecule_name + " energy")
+plt.title(F'{molecule_name} energy')
 plt.show()
 plt.savefig(F'benzene_energy.png')
 ```
