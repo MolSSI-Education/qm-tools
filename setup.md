@@ -25,7 +25,7 @@ conda install -c raimis -c psi4 -c conda-forge psi4=1.3.2
 
 ## MacOS or Linux
 ~~~
-conda install psi4 psi4-rt python=3.7 -c psi4
+conda install -c psi4 psi4
 ~~~
 {: .language-bash}
 
