@@ -1,0 +1,9 @@
+name: qm-tools
+
+dependencies:
+  - psi4::psi4
+  - conda-forge::python
+  - conda-forge::notebook
+  - conda-forge::numpy
+  - conda-forge::matplotlib
+  - conda-forge::nglview
