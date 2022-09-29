@@ -32,10 +32,10 @@ If you use the environment yaml, we recommend the [mamba package manager](https:
 
 Otherwise, type the following commands into your terminal
 ~~~ 
-$ conda env create -n qm-tools python="3.10"
-$ conda activate qm-tools
-$ conda install -c psi4 psi4
-$ conda install -c conda-forge notebook matplotlib numpy nglview
+conda env create -n qm-tools python="3.10"
+conda activate qm-tools
+conda install -c psi4 psi4
+conda install -c conda-forge notebook matplotlib numpy nglview
 ~~~
 {: .bash}
 
